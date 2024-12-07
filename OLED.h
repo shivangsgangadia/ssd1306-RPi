@@ -72,9 +72,12 @@ private:
   int m_stringLength, m_charIndex;
   uint8_t m_rowMax, m_columnMax, m_currentByte;
 
+  static inline uint16_t s_i2cAddr = 0;
+  static void i2cWrite(int fileDescriptor, std::vector<uint8_t> &buf);
+
 public:
   OLED(OLED &) = delete;
-  static auto initialize(std::string i2cDevAddr) -> void;
+  static auto initialize(std::string i2cDevAddr, uint16_t i2cAddr=OLED_I2C_ADDRESS) -> void;
   static auto getInstance(std::function<std::string()> *addressGet=nullptr) -> OLED&;
 
   /**
@@ -86,7 +89,7 @@ public:
 
   void writeStringMultiLine(std::string, int scaleFactor, int row, int column);
 
-  void clearDisplay();
+  void clearDisplay() const;
 
   void clearDisplayAt(uint8_t row, uint8_t column, uint8_t count, uint8_t scale) const;
 };

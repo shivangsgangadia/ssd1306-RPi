@@ -1,6 +1,5 @@
 #include "OLED.h"
 #include "StandardFont.h"
-#include <array>
 #include <cstdint>
 #include <stdexcept>
 #include <functional>
@@ -18,14 +17,14 @@
 #define BYTE_SIZE 8u
 
 
-void i2cWrite(int fileDescriptor, std::vector<uint8_t> &buf) {
+void OLED::i2cWrite(int fileDescriptor, std::vector<uint8_t> &buf) {
   struct i2c_rdwr_ioctl_data metadata;
   struct i2c_msg i2cmsg;
 
   metadata.msgs = &i2cmsg;
   metadata.nmsgs = 1;
 
-  i2cmsg.addr = OLED_I2C_ADDRESS;
+  i2cmsg.addr = s_i2cAddr;
   i2cmsg.len = buf.size();
   i2cmsg.buf = buf.data();
   i2cmsg.flags = 0;
@@ -47,7 +46,7 @@ OLED::OLED(std::string deviceAddress) {
   }
 
   // set slave address
-  if (ioctl(m_fd, I2C_SLAVE, OLED_I2C_ADDRESS) < 0) {
+  if (ioctl(m_fd, s_i2cAddr, OLED_I2C_ADDRESS) < 0) {
     close(m_fd);
     throw std::runtime_error("setting slave address failed");
   }
@@ -78,7 +77,8 @@ OLED::~OLED() {
   close(m_fd);
 }
 
-auto OLED::initialize(std::string i2cDevAddr) -> void {
+auto OLED::initialize(std::string i2cDevAddr, uint16_t i2cAddr) -> void {
+  s_i2cAddr = i2cAddr;
   std::function<std::string()> getAddr = [&]() {
     return i2cDevAddr;
   };
@@ -168,7 +168,7 @@ void OLED::writeStringMultiLine(std::string str, int scaleFactor, int row, int c
   }
 }
 
-void OLED::clearDisplay() {
+void OLED::clearDisplay() const {
   // Set the GDDRAM to (Row0, Col0), ie: top-left and establish range as the whole screen - 128x64
   std::vector<uint8_t> writeBuffer {
       OLED_CONTROL_BYTE_CMD_STREAM,
@@ -235,7 +235,7 @@ void OLED::setCursor(uint8_t rowStart, uint8_t rowEnd, uint8_t columnStart, uint
 uint8_t byteToScale, bitPoint, temp;
 
 void OLED::scale(uint8_t inp, uint8_t scale) {
-  OLED::resetByteBuffer();
+  resetByteBuffer();
   byteToScale = 0, bitPoint = 0, temp = 0;
 
   for (int i = 0; i < 8; i++) {
