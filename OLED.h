@@ -1,5 +1,6 @@
-#include "StandardFont.h"
-#include <wiringPiI2C.h>
+#include <cstdint>
+#include <string>
+#include <functional>
 
 #define OLED_I2C_ADDRESS 0x3C
 #define ANDER 128
@@ -47,44 +48,45 @@
 // Charge Pump (pg.62)
 #define OLED_CMD_SET_CHARGE_PUMP 0x8D // follow with 0x14
 
+#define DOUBLE_SCALE_BUFFER_SIZE 2
+#define SCREEN_HORIZONTAL_SIZE 127
+#define SCREEN_VERTICAL_SIZE 64
 #define NUM_PRINT_OFFSET 48
-
-typedef unsigned char uint8_t;
 
 class OLED {
 private:
   /**
        Return array of bytes by scaling byte inp
     */
-  static void scale(uint8_t inp, uint8_t scale);
+  void scale(uint8_t inp, uint8_t scale);
 
   /**
      * Resets the doubleScaleBuffer to 0
      */
-  static void resetByteBuffer();
+  void resetByteBuffer();
+  OLED(std::string deviceAddress);
+  ~OLED();
 
-  static int fd;
+  uint8_t m_doubleScaleBuffer[DOUBLE_SCALE_BUFFER_SIZE];
+  int m_fd;
+  int m_stringLength, m_charIndex;
+  uint8_t m_rowMax, m_columnMax, m_currentByte;
 
 public:
-  static uint8_t doubleScaleBuffer[];
-
-  /**
-       Initial commands for the OLED. Make sure to call Wire.begin separately.
-    */
-  static void init();
+  OLED(OLED &) = delete;
+  static auto initialize(std::string i2cDevAddr) -> void;
+  static auto getInstance(std::function<std::string()> *addressGet=nullptr) -> OLED&;
 
   /**
      * Rows range from 0 - 7, and columns range from 0 - 127
      */
-  static void setCursor(int rowStart, int rowEnd, int columnStart, int columnEnd);
+  void setCursor(uint8_t rowStart, uint8_t rowEnd, uint8_t columnStart, uint8_t columnEnd) const;
 
-  static void writeString(char *str, int scaleFactor, int row, int column);
+  void writeString(std::string, int scaleFactor, int row, int column);
 
-  static void writeStringMultiLine(char *str, int scaleFactor, int row, int column);
+  void writeStringMultiLine(std::string, int scaleFactor, int row, int column);
 
-  static void writeDisplayByte(char *byteArray, int scaleFactor, int row, int column);
+  void clearDisplay();
 
-  static void clearDisplay();
-
-  static void clearDisplayAt(uint8_t row, uint8_t column, uint8_t count, uint8_t scale);
+  void clearDisplayAt(uint8_t row, uint8_t column, uint8_t count, uint8_t scale) const;
 };
